@@ -12,7 +12,7 @@ def get_db_connection():
         st.stop()
 
 # 데이터 가져오기
-@st.cache_data(ttl=600) # 600초(10분)마다 캐시 갱신
+@st.cache_data(ttl=600)
 def fetch_table(table_name):
     conn = get_db_connection()
     try:

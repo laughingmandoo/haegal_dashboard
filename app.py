@@ -3,7 +3,7 @@ import pandas as pd
 import altair as alt
 from db import fetch_table
 
-# DB 불러오기
+# 데이터 불러오기
 series_df = fetch_table("series")
 category_df = fetch_table("category")
 book_df = fetch_table("book")
@@ -37,7 +37,7 @@ with st.sidebar:
 # 필터링
 filtered_book_df = book_df.copy()
 
-# 검색
+# 검색 필터링
 if search_keyword:
     series_matches = series_df[series_df['series_name'].str.contains(search_keyword, case=False)]['series_id']
     alias_matches = alias_df[alias_df['alias_name'].str.contains(search_keyword, case=False)]['series_id']
@@ -45,12 +45,12 @@ if search_keyword:
 
     filtered_book_df = filtered_book_df[(filtered_book_df['title'].str.contains(search_keyword, case=False)) | (filtered_book_df['series_id'].isin(target_series_ids))]
 
-# 카테고리
+# 카테고리 필터링
 if selected_category:
     selected_id = category_df[category_df['category_name'].isin(selected_category)]['category_id']
     filtered_book_df = filtered_book_df[filtered_book_df['category_id'].isin(selected_id)]
     
-# 대여 가능
+# 대여 가능 필터링
 if rentable:
     filtered_book_df = filtered_book_df[filtered_book_df['can_rent'] == True]
 
@@ -63,7 +63,6 @@ with st.container(border=0):
     col1, col2, col3, = st.columns([1,1,3])
 
 # - 기초 통계
-
 with col1:
     st.subheader("통계")
     st.metric("총 보유 권수", f"{len(book_df)} 권")
@@ -103,7 +102,7 @@ st.divider()
 
 # 검색 결과 컨테이너
 st.header("검색 및 필터 결과")
-with st.container(border=1):
+with st.container(border=0):
     col_table, col_chart = st.columns([3, 2], gap="large")
 
 # - 도서 목록
@@ -141,3 +140,5 @@ with col_chart:
         st.altair_chart(chart, use_container_width=True, height='stretch')
     else:
         st.info("선택한 조건에 맞는 도서가 없습니다.")
+        
+        
