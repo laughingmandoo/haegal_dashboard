@@ -32,7 +32,7 @@ category_list = category_df['category_name']
 selected_category = st.sidebar.multiselect("카테고리 선택:", category_list)
 
 # 대여 가능 필터
-rentable = s        t.sidebar.checkbox("대여 가능한 책만 보기")
+rentable = st.sidebar.checkbox("대여 가능한 책만 보기")
 
 # 데이터 새로고침
 refresh = st.sidebar.button("데이터 새로고침")
