@@ -51,7 +51,7 @@ col1.metric("총 보유 권수", f"{total_books} 권")
 col2.metric("대여 가능 권수", f"{rentable_books} 권")
 
 st.subheader("도서 목록")
-st.dataframe(book_df)
+st.dataframe(book_df.sort_values('book_code'))
 
 st.subheader("위치별 보유 현황")
 location_counts = book_df['location'].value_counts()
