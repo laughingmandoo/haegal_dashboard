@@ -37,8 +37,17 @@ col1.metric("총 보유 권수", f"{total_books} 권")
 col2.metric("대여 가능 권수", f"{rentable_books} 권")
 
 # 2. 도서 목록
+
+filtered_book_df = book_df.copy()
+
+if rentable:
+    filtered_book_df = filtered_book_df[filtered_book_df['can_rent'] == True]
+
+
+filtered_book_df = filtered_book_df[['book_code','title','location','can_rent']]
+
 st.subheader("도서 목록")
-st.dataframe(book_df.sort_values('book_code'))
+st.dataframe(filtered_book_df.sort_values('book_code'))
 
 # 3. 위치별 책 수
 st.subheader("위치별 보유 현황")
