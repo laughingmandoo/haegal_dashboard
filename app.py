@@ -36,20 +36,20 @@ col1, col2 = st.columns(2)
 col1.metric("총 보유 권수", f"{total_books} 권")
 col2.metric("대여 가능 권수", f"{rentable_books} 권")
 
-# 2. 도서 목록
+
 
 filtered_book_df = book_df.copy()
-
 if rentable:
     filtered_book_df = filtered_book_df[filtered_book_df['can_rent'] == True]
+if selected_category:
+    selected_id = category_df[category_df['category_name'].isin(selected_category)]['category_id']
+    filtered_book_df = filtered_book_df[filtered_book_df['category_id'].isin(selected_id)]
 
-
-filtered_book_df = filtered_book_df[['book_code','title','location','can_rent']]
-
+# 2. 도서 목록
 st.subheader("도서 목록")
-st.dataframe(filtered_book_df.sort_values('book_code'))
+st.dataframe(filtered_book_df[['book_code','title','location','can_rent']].sort_values('book_code'))
 
 # 3. 위치별 책 수
 st.subheader("위치별 보유 현황")
-location_counts = book_df['location'].value_counts()
+location_counts = filtered_book_df['location'].sort_values('location').value_counts()
 st.bar_chart(location_counts)
