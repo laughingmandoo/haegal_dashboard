@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import altair as alt
 from db import fetch_table
 
 series_df = fetch_table("series")
@@ -10,7 +11,7 @@ alias_df = fetch_table("alias")
 # 대시보드 UI
 
 # 사이드바
-st.sidebar.title("필터 옵션 (작동X)")
+st.sidebar.title("필터 옵션")
 
 # 1. 카테고리 필터
 category_list = category_df['category_name']
@@ -37,7 +38,6 @@ col1.metric("총 보유 권수", f"{total_books} 권")
 col2.metric("대여 가능 권수", f"{rentable_books} 권")
 
 
-
 filtered_book_df = book_df.copy()
 if rentable:
     filtered_book_df = filtered_book_df[filtered_book_df['can_rent'] == True]
@@ -47,9 +47,31 @@ if selected_category:
 
 # 2. 도서 목록
 st.subheader("도서 목록")
-st.dataframe(filtered_book_df[['book_code','title','location','can_rent']].sort_values('book_code'))
+if not filtered_book_df.empty:
+    st.dataframe(filtered_book_df[['book_code','title','location','can_rent']].sort_values('book_code'))
+else:    
+    st.info("선택한 조건에 맞는 도서가 없습니다.")
 
 # 3. 위치별 책 수
 st.subheader("위치별 보유 현황")
-location_counts = filtered_book_df['location'].sort_values('location').value_counts()
-st.bar_chart(location_counts)
+if not filtered_book_df.empty:
+    filtered_book_df['zone'] = filtered_book_df['location'].str.split('-').str[0]
+    zone_counts = filtered_book_df['zone'].value_counts()
+    all_zones = zone_counts.index.tolist()
+    
+    special_zone_id = ['BA','CT','OD']    
+    normal_zones = sorted([zone for zone in all_zones if zone not in special_zone_id])
+    special_zones = sorted([zone for zone in all_zones if zone in special_zone_id])
+    sort_order = normal_zones + special_zones
+    
+    chart_df = zone_counts.reindex(sort_order).reset_index()
+    chart_df.columns = ['zone', 'count']
+    chart = alt.Chart(chart_df).mark_bar().encode(
+        x=alt.X('count', title=None),
+        y=alt.Y('zone', sort=sort_order, title=None),
+        tooltip=['zone', 'count']
+    )
+    
+    st.altair_chart(chart, use_container_width=True)
+else:
+    st.info("선택한 조건에 맞는 도서가 없습니다.")
