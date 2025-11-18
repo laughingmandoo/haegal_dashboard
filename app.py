@@ -1,46 +1,40 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
+import plotly.express as px
+import matplotlib.pyplot as plt
 from db import fetch_table
 
+# DB 불러오기
 series_df = fetch_table("series")
 category_df = fetch_table("category")
 book_df = fetch_table("book")
 alias_df = fetch_table("alias")
 
-# 대시보드 UI
+# 대시보드
+st.set_page_config(layout="wide")
 
 # 사이드바
-st.sidebar.title("도서 검색 & 필터")
+with st.sidebar:
+    st.header("도서 검색 및 필터")
 
-# - 통합 검색
-search_keyword = st.sidebar.text_input("통합 검색", placeholder="제목 / 시리즈 / 별칭")
+    # - 통합 검색
+    search_keyword = st.text_input("통합 검색", placeholder="제목 / 시리즈 / 별칭")
 
-# - 카테고리 필터
-category_list = category_df['category_name']
-selected_category = st.sidebar.multiselect("카테고리 선택:", category_list, placeholder="카테고리")
+    # - 카테고리 필터
+    category_list = category_df['category_name']
+    selected_category = st.multiselect("카테고리 선택:", category_list, placeholder="카테고리")
 
-# - 대여 가능 필터
-rentable = st.sidebar.checkbox("대여 가능한 책만 보기")
+    # - 대여 가능 필터
+    rentable = st.checkbox("대여 가능한 책만 보기")
 
-st.sidebar.divider()
+    st.divider()
 
-# - 데이터 새로고침
-refresh = st.sidebar.button("새로고침")
-if refresh:
-    st.cache_data.clear()
-    st.rerun()
-
-# 메인 화면
-st.title("해갈 도서관 DB")
-
-# 1. 기초 통계
-total_books = len(book_df)
-rentable_books = len(book_df[book_df['can_rent'] == True])
-
-col1, col2 = st.columns(2)
-col1.metric("총 보유 권수", f"{total_books} 권")
-col2.metric("대여 가능 권수", f"{rentable_books} 권")
+    # - 데이터 새로고침
+    refresh = st.button("새로고침", width='stretch')
+    if refresh:
+        st.cache_data.clear()
+        st.rerun()
 
 # 필터링
 filtered_book_df = book_df.copy()
@@ -62,38 +56,90 @@ if selected_category:
 if rentable:
     filtered_book_df = filtered_book_df[filtered_book_df['can_rent'] == True]
 
+# 메인 화면
+st.title("해갈 도서관 DB")
 
-st.divider()
+# 도서 정보 컨테이너
+st.title("도서 정보")
+with st.container(border=0):
+    col1, col2, col3, = st.columns([1,1,3])
 
-# 2. 도서 목록
-st.subheader("도서 목록")
-if not filtered_book_df.empty:
-    st.dataframe(filtered_book_df[['book_code','title','location','can_rent']].sort_values('book_code'))
-else:    
-    st.info("선택한 조건에 맞는 도서가 없습니다.")
+# - 기초 통계
 
-st.divider()
-
-# 3. 위치별 책 수
-st.subheader("위치별 보유 현황")
-if not filtered_book_df.empty:
-    filtered_book_df['zone'] = filtered_book_df['location'].str.split('-').str[0]
-    zone_counts = filtered_book_df['zone'].value_counts()
-    all_zones = zone_counts.index.tolist()
+with col1:
+    st.subheader("통계")
+    st.metric("총 보유 권수", f"{len(book_df)} 권")
+    st.metric("검색 결과 권수", f"{len(filtered_book_df)} 권")
     
-    special_zone_id = ['BA','CT','OD']    
-    normal_zones = sorted([zone for zone in all_zones if zone not in special_zone_id])
-    special_zones = sorted([zone for zone in all_zones if zone in special_zone_id])
-    sort_order = normal_zones + special_zones
+with col2:
+    st.subheader("")
+    col2.metric("총 대여 가능 권수", f"{len(book_df[book_df['can_rent'] == True])} 권")
+    col2.metric("검색 결과 중 대여 가능 권수", f"{len(filtered_book_df[filtered_book_df['can_rent'] == True])} 권")
+
+# - 카테고리별 도서 수
+with col3:
+    st.subheader("카테고리별 도서 수")
     
-    chart_df = zone_counts.reindex(sort_order).reset_index()
-    chart_df.columns = ['zone', 'count']
-    chart = alt.Chart(chart_df).mark_bar().encode(
-        x=alt.X('count', title=None),
-        y=alt.Y('zone', sort=sort_order, title=None),
-        tooltip=['zone', 'count']
+    book_merge_df = pd.merge(book_df, category_df[['category_id', 'category_name']], on='category_id', how='left')
+    category_counts = book_merge_df['category_name'].value_counts().reset_index()
+    category_counts.columns = ['category_name', 'count']
+    category_counts['dummy'] = '전체'
+    
+    chart = alt.Chart(category_counts).mark_bar().encode(
+        y=alt.Y('dummy', axis=None),
+        x=alt.X('count', stack='normalize', title=None),
+        color=alt.Color('category_name', title=None),
+        tooltip=['category_name:N', 'count']
+    ).properties(
+        width=600,
+        height=200
+    ).configure_legend(
+        orient='bottom',
+        direction='horizontal',
+        titleOrient='bottom'
     )
+
+    st.altair_chart(chart, width="stretch")
+
+st.divider()
+
+# 검색 결과 컨테이너
+st.header("검색 및 필터 결과")
+with st.container(border=1):
+    col_table, col_chart = st.columns([3, 2], gap="large")
+
+# - 도서 목록
+with col_table:
+    st.subheader("도서 목록")
     
-    st.altair_chart(chart, use_container_width=True)
-else:
-    st.info("선택한 조건에 맞는 도서가 없습니다.")
+    if not filtered_book_df.empty:
+        st.dataframe(filtered_book_df[['book_code','title','location','can_rent']].sort_values('book_code'), height='stretch')
+    else:    
+        st.info("선택한 조건에 맞는 도서가 없습니다.")
+
+# - 위치별 책 수
+with col_chart:
+    st.subheader("위치별 도서 수")
+    
+    if not filtered_book_df.empty:
+        filtered_book_df['zone'] = filtered_book_df['location'].str.split('-').str[0]
+        zone_counts = filtered_book_df['zone'].value_counts()
+        all_zones = zone_counts.index.tolist()
+        
+        special_zone_id = ['BA','CT','OD']    
+        normal_zones = sorted([zone for zone in all_zones if zone not in special_zone_id])
+        special_zones = sorted([zone for zone in all_zones if zone in special_zone_id])
+        sort_order = normal_zones + special_zones
+        
+        chart_df = zone_counts.reindex(sort_order).reset_index()
+        chart_df.columns = ['zone', 'count']
+        
+        chart = alt.Chart(chart_df).mark_bar().encode(
+            x=alt.X('count', title=None),
+            y=alt.Y('zone', sort=sort_order, title=None),
+            tooltip=['zone', 'count']
+        )
+        
+        st.altair_chart(chart, use_container_width=True, height='stretch')
+    else:
+        st.info("선택한 조건에 맞는 도서가 없습니다.")
