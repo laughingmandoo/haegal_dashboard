@@ -10,6 +10,10 @@ category_df = fetch_table("category")
 book_df = fetch_table("book")
 alias_df = fetch_table("alias")
 
+# 필터링을 위한 복사본
+filtered_book_df = book_df.copy()
+filtered_book_df['zone'] = filtered_book_df['location'].str.split('-').str[0]
+
 # 대시보드
 st.set_page_config(page_title="해갈 도서관", layout="wide")
 
@@ -23,6 +27,10 @@ with st.sidebar:
     # - 카테고리 필터
     category_list = category_df['category_name']
     selected_category = st.multiselect("카테고리 선택:", category_list, placeholder="카테고리")
+    
+    # - 위치 필터
+    zone_list = ['A','B','C','D','E','F','G','I','J','M','N','T','W','BA','CT','OD']
+    selected_zone = st.multiselect("위치 선택:", zone_list, placeholder="위치")
 
     # - 대여 가능 필터
     rentable = st.checkbox("대여 가능한 책만 보기")
@@ -39,10 +47,6 @@ with st.sidebar:
     ai_book_code = st.text_input("코드 입력 :", placeholder=" 도서 코드")
     ai_search_button = st.button("AI 분석 및 정리 시작", width='stretch')
 
-
-# 필터링
-filtered_book_df = book_df.copy()
-
 # 검색 필터링
 if search_keyword:
     series_matches = series_df[series_df['series_name'].str.contains(search_keyword, case=False)]['series_id']
@@ -56,6 +60,10 @@ if selected_category:
     selected_id = category_df[category_df['category_name'].isin(selected_category)]['category_id']
     filtered_book_df = filtered_book_df[filtered_book_df['category_id'].isin(selected_id)]
     
+# 위치 필터링
+if selected_zone:
+    filtered_book_df = filtered_book_df[filtered_book_df['zone'].isin(selected_zone)]
+
 # 대여 가능 필터링
 if rentable:
     filtered_book_df = filtered_book_df[filtered_book_df['can_rent'] == True]
@@ -117,7 +125,7 @@ with col_table:
     st.subheader("도서 목록")
     
     if not filtered_book_df.empty:
-        filtered_book_table_df = filtered_book_df[['book_code','title','location','can_rent']].sort_values('book_code')
+        filtered_book_table_df = filtered_book_df[['book_code','title','location','can_rent']].sort_values('title')
         st.dataframe(filtered_book_table_df, height='stretch')
     else:    
         st.info("선택한 조건에 맞는 도서가 없습니다.")
@@ -127,21 +135,15 @@ with col_chart:
     st.subheader("위치별 도서 수")
     
     if not filtered_book_df.empty:
-        filtered_book_df['zone'] = filtered_book_df['location'].str.split('-').str[0]
         zone_counts = filtered_book_df['zone'].value_counts()
         all_zones = zone_counts.index.tolist()
         
-        special_zone_id = ['BA','CT','OD']    
-        normal_zones = sorted([zone for zone in all_zones if zone not in special_zone_id])
-        special_zones = sorted([zone for zone in all_zones if zone in special_zone_id])
-        sort_order = normal_zones + special_zones
-        
-        chart_df = zone_counts.reindex(sort_order).reset_index()
+        chart_df = zone_counts.reset_index()
         chart_df.columns = ['zone', 'count']
         
         chart = alt.Chart(chart_df).mark_bar().encode(
             x=alt.X('count', title=None),
-            y=alt.Y('zone', sort=sort_order, title=None),
+            y=alt.Y('zone', sort=zone_list, title=None),
             tooltip=['zone', 'count']
         )
         
