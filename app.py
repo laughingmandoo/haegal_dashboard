@@ -10,7 +10,7 @@ book_df = fetch_table("book")
 alias_df = fetch_table("alias")
 
 # 대시보드
-st.set_page_config(layout="wide")
+st.set_page_config(page_title="해갈 도서관", layout="wide")
 
 # 사이드바
 with st.sidebar:
@@ -55,7 +55,7 @@ if rentable:
     filtered_book_df = filtered_book_df[filtered_book_df['can_rent'] == True]
 
 # 메인 화면
-st.title("해갈 도서관 DB")
+st.title("해갈 도서관")
 
 # 도서 정보 컨테이너
 st.title("도서 정보")
