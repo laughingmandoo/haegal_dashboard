@@ -2,27 +2,18 @@ import streamlit as st
 from google import genai
 from google.genai import types
 
-# 1. Gemini 모델 초기화 함수 (@st.cache_resource를 사용하여 재로드 방지)
+# Gemini 모델 초기화 함수
 @st.cache_resource
 def load_gemini_client():
-    # secrets.toml에 키가 없으면 실행 중단
-    if "GEMINI_API_KEY" not in st.secrets:
-        st.error("🚨 Gemini API 키를 찾을 수 없습니다.")
-        st.warning("`.streamlit/secrets.toml` 파일에 'GEMINI_API_KEY = \"YOUR_API_KEY\"' 형식으로 키를 설정해주세요.")
-        return None
-
     try:
-        # API 클라이언트 초기화
         client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
         return client
     except Exception as e:
         st.error(f"Gemini 클라이언트 초기화 오류: {e}")
         return None
 
-# 2. 책 정보 검색 및 정리 요청 함수
+# 책 정보 검색 및 정리 요청 함수
 def get_ai_summary(client, book_title, book_type):
-    """Gemini 모델을 호출하여 검색을 요청하고 결과를 받습니다."""
-    
     full_query = f"책 제목: '{book_title}', 종류: '{book_type}'"
     
     # 시스템 프롬프트: 모델의 역할과 목표를 명확하게 정의

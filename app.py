@@ -150,25 +150,25 @@ with col_chart:
 
 client = load_gemini_client()
 
+# AI 분석
 if ai_search_button:
-    if not client:
-        st.stop()
-
     if not ai_book_code:
         st.error("책 코드를 입력해 주세요.")
-
+        
     book_data = book_merge_df[book_merge_df['book_code'] == ai_book_code]
-
     if book_data.empty:
         st.error(f"도서 코드 '{ai_book_code}'에 해당하는 도서를 찾을 수 없습니다. 코드를 확인해 주세요.")
 
-    ai_title = book_merge_df[book_merge_df['book_code'] == ai_book_code]['title']
-    ai_category_name = book_merge_df[book_merge_df['book_code'] == ai_book_code]['category_name']
+    ai_title = book_data['title'].item()
+    ai_category_name = book_data['category_name'].item()
+    
     with st.spinner(f"'{ai_title} {ai_category_name}'에 대한 AI 분석 및 정리 중..."):
         analysis_result = get_ai_summary(client, ai_title, ai_category_name)
-        
-        st.header(f"{ai_title} ({ai_category_name}) 분석 결과")
-        st.markdown("---")
-        st.markdown(analysis_result)
-        
-        st.success("✅ 분석이 완료되었습니다.")
+        if analysis_result is None or 'AI 분석 중 오류가 발생했습니다' in analysis_result:
+             # 오류가 발생했거나, 검색 결과가 없는 경우
+            st.error(f"분석 실패: {analysis_result if analysis_result else '검색 결과를 찾을 수 없습니다.'}")
+            st.warning("잠시 후 다시 시도하거나, 도서 코드와 API 키 설정을 확인해 주세요.")
+        else:
+            # 성공적으로 결과를 받은 경우
+            st.markdown(analysis_result)
+            st.success("✅ 분석이 완료되었습니다.")
