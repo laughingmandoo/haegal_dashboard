@@ -18,8 +18,8 @@ with st.sidebar:
     st.header("도서 검색 및 필터")
 
     # - 통합 검색
-    search_keyword = st.text_input("통합 검색", placeholder="제목 / 시리즈 / 별칭")
-
+    search_keyword = st.text_input("통합 검색", placeholder="도서 제목 / 시리즈 / 별칭")
+    
     # - 카테고리 필터
     category_list = category_df['category_name']
     selected_category = st.multiselect("카테고리 선택:", category_list, placeholder="카테고리")
@@ -36,7 +36,7 @@ with st.sidebar:
     st.divider()
 
     st.header("AI 도서 소개")
-    ai_book_code = st.text_input("코드 입력 :", placeholder="코드")
+    ai_book_code = st.text_input("코드 입력 :", placeholder=" 도서 코드")
     ai_search_button = st.button("AI 분석 및 정리 시작", width='stretch')
 
 
@@ -121,7 +121,7 @@ with col_table:
     else:    
         st.info("선택한 조건에 맞는 도서가 없습니다.")
 
-# - 위치별 책 수
+# - 위치별 도서 수
 with col_chart:
     st.subheader("위치별 도서 수")
     
@@ -144,31 +144,52 @@ with col_chart:
             tooltip=['zone', 'count']
         )
         
-        st.altair_chart(chart, use_container_width=True, height='stretch')
+        st.altair_chart(chart, width='content', height='stretch')
     else:
         st.info("선택한 조건에 맞는 도서가 없습니다.")
 
+st.divider()
+
+# AI 도서 소개 컨테이너
+st.header("AI 도서 소개")
+ai_container = st.container(border=0)
+
+if 'ai_analysis_done' not in st.session_state:
+    st.session_state.ai_analysis_done = False
+    
+if not st.session_state.ai_analysis_done:
+    ai_container.info("사이드바에 도서 코드를 입력하고 'AI 분석 및 정리 시작' 버튼을 눌러주세요.")
+
+st.session_state.ai_analysis_done = True
+
 client = load_gemini_client()
 
-# AI 분석
+# - AI 도서 소개
 if ai_search_button:
-    if not ai_book_code:
-        st.error("책 코드를 입력해 주세요.")
-        
-    book_data = book_merge_df[book_merge_df['book_code'] == ai_book_code]
-    if book_data.empty:
-        st.error(f"도서 코드 '{ai_book_code}'에 해당하는 도서를 찾을 수 없습니다. 코드를 확인해 주세요.")
-
-    ai_title = book_data['title'].item()
-    ai_category_name = book_data['category_name'].item()
+    ai_container.empty()
     
-    with st.spinner(f"'{ai_title} {ai_category_name}'에 대한 AI 분석 및 정리 중..."):
-        analysis_result = get_ai_summary(client, ai_title, ai_category_name)
-        if analysis_result is None or 'AI 분석 중 오류가 발생했습니다' in analysis_result:
-             # 오류가 발생했거나, 검색 결과가 없는 경우
-            st.error(f"분석 실패: {analysis_result if analysis_result else '검색 결과를 찾을 수 없습니다.'}")
-            st.warning("잠시 후 다시 시도하거나, 도서 코드와 API 키 설정을 확인해 주세요.")
-        else:
-            # 성공적으로 결과를 받은 경우
-            st.markdown(analysis_result)
-            st.success("✅ 분석이 완료되었습니다.")
+    with ai_container:
+        if not ai_book_code:
+            st.error("도서 코드를 입력해 주세요.")
+            st.stop()
+        
+        book_data = book_merge_df[book_merge_df['book_code'] == ai_book_code]
+        if book_data.empty:
+            st.error(f"도서 코드 '{ai_book_code}'에 해당하는 도서를 찾을 수 없습니다.")
+            st.stop()
+            
+        ai_title = book_data['title'].item()
+        ai_category_name = book_data['category_name'].item()
+        
+        with st.spinner(f"'\[{ai_book_code}\] {ai_title} ({ai_category_name})'에 대한 AI 분석 및 정리 중.."):
+            analysis_result = get_ai_summary(client, ai_title, ai_category_name)
+            
+            
+            if analysis_result is None or 'AI 분석 중 오류가 발생했습니다' in analysis_result:
+                st.error(f"검색 실패: {analysis_result if analysis_result else '검색 결과를 찾을 수 없습니다.'}")
+                st.warning("잠시 후 다시 시도하거나, 도서 코드와 API 키 설정을 확인해 주세요.")
+            else:
+                st.subheader(f"\[{ai_book_code}\] {ai_title} ({ai_category_name}) 검색 결과")
+                with st.container(border=1):
+                    st.markdown(analysis_result)
+                st.success("분석이 완료되었습니다.")
