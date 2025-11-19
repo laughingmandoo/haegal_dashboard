@@ -145,7 +145,7 @@ with col_chart:
             tooltip=['zone', 'count']
         )
         
-        st.altair_chart(chart, width='content', height='stretch')
+        st.altair_chart(chart, width='stretch', height='stretch')
     else:
         st.info("선택한 조건에 맞는 도서가 없습니다.")
 
