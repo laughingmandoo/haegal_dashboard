@@ -117,7 +117,9 @@ with col_table:
     st.subheader("도서 목록")
     
     if not filtered_book_df.empty:
-        st.dataframe(filtered_book_df[['book_code','title','location','can_rent']].sort_values('book_code'), height='stretch')
+        filtered_book_table_df = filtered_book_df[['book_code','title','location','can_rent']].sort_values('book_code')
+        filtered_book_table_df.columns = ['도서 코드', '제목', '위치', '대여 가능']
+        st.dataframe(filtered_book_table_df, height='stretch')
     else:    
         st.info("선택한 조건에 맞는 도서가 없습니다.")
 
