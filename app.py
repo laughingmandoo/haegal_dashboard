@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 from db import fetch_table
+from book_search import load_gemini_client, get_ai_summary
 
 # 데이터 불러오기
 series_df = fetch_table("series")
@@ -25,14 +26,19 @@ with st.sidebar:
 
     # - 대여 가능 필터
     rentable = st.checkbox("대여 가능한 책만 보기")
-
-    st.divider()
-
+    
     # - 데이터 새로고침
-    refresh = st.button("새로고침", width='stretch')
+    refresh = st.button("도서 목록 새로고침", width='stretch')
     if refresh:
         st.cache_data.clear()
         st.rerun()
+
+    st.divider()
+
+    st.header("AI 도서 소개")
+    ai_book_code = st.text_input("코드 입력 :", placeholder="코드")
+    ai_search_button = st.button("AI 분석 및 정리 시작", width='stretch')
+
 
 # 필터링
 filtered_book_df = book_df.copy()
@@ -78,6 +84,7 @@ with col3:
     st.subheader("카테고리별 도서 수")
     
     book_merge_df = pd.merge(book_df, category_df[['category_id', 'category_name']], on='category_id', how='left')
+    
     category_counts = book_merge_df['category_name'].value_counts().reset_index()
     category_counts.columns = ['category_name', 'count']
     category_counts['dummy'] = '전체'
@@ -140,5 +147,28 @@ with col_chart:
         st.altair_chart(chart, use_container_width=True, height='stretch')
     else:
         st.info("선택한 조건에 맞는 도서가 없습니다.")
+
+client = load_gemini_client()
+
+if ai_search_button:
+    if not client:
+        st.stop()
+
+    if not ai_book_code:
+        st.error("책 코드를 입력해 주세요.")
+
+    book_data = book_merge_df[book_merge_df['book_code'] == ai_book_code]
+
+    if book_data.empty:
+        st.error(f"도서 코드 '{ai_book_code}'에 해당하는 도서를 찾을 수 없습니다. 코드를 확인해 주세요.")
+
+    ai_title = book_merge_df[book_merge_df['book_code'] == ai_book_code]['title']
+    ai_category_name = book_merge_df[book_merge_df['book_code'] == ai_book_code]['category_name']
+    with st.spinner(f"'{ai_title} {ai_category_name}'에 대한 AI 분석 및 정리 중..."):
+        analysis_result = get_ai_summary(client, ai_title, ai_category_name)
         
+        st.header(f"{ai_title} ({ai_category_name}) 분석 결과")
+        st.markdown("---")
+        st.markdown(analysis_result)
         
+        st.success("✅ 분석이 완료되었습니다.")

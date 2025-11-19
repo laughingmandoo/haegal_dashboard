@@ -44,7 +44,6 @@ def get_ai_summary(client, book_title, book_type):
             contents=prompt,
             config=types.GenerateContentConfig(
                 system_instruction=system_instruction,
-                # Google Search 도구 사용을 명시적으로 활성화
                 tools=[{"google_search": {}}] 
             )
         )
@@ -52,49 +51,3 @@ def get_ai_summary(client, book_title, book_type):
     
     except Exception as e:
         return f"AI 분석 중 오류가 발생했습니다: {e}"
-
-
-# 3. Streamlit 대시보드 UI 구성
-def main():
-    st.set_page_config(page_title="📚 AI 기반 책 정보 분석 서비스", layout="wide")
-    st.title("📖 Gemini AI 기반 책 정보 분석 서비스")
-    st.markdown("---")
-    
-    client = load_gemini_client()
-    if not client:
-        return # API 키 오류 시 실행 중단
-
-    # 사이드바 입력 폼
-    with st.sidebar:
-        st.header("🔍 검색 조건 입력")
-        
-        book_title = st.text_input("**책 제목 (필수)**", placeholder="예: 데미안")
-        book_type_options = ["소설", "만화", "에세이", "자기계발", "IT/컴퓨터", "인문학", "기타"]
-        selected_type = st.selectbox("**책 종류 (선택)**", book_type_options)
-        
-        search_button = st.button("🚀 AI 분석 및 정리 시작")
-        
-        st.markdown("---")
-        st.caption("✨ Gemini 모델이 Google 검색을 사용하여 정보를 찾고 분석합니다.")
-
-    
-    # 검색 버튼 클릭 시 로직 처리
-    if search_button:
-        if not book_title:
-            st.error("책 제목을 입력해 주세요.")
-            return
-
-        with st.spinner(f"'{book_title} {selected_type}'에 대한 AI 분석 및 정리 중..."):
-            # 4. API 호출 및 결과 반환
-            analysis_result = get_ai_summary(client, book_title, selected_type)
-            
-            # 5. 결과 표시
-            st.header(f"📚 {book_title} ({selected_type}) 분석 결과")
-            st.markdown("---")
-            st.markdown(analysis_result)
-            
-            st.success("✅ 분석이 완료되었습니다.")
-
-
-if __name__ == "__main__":
-    main()
