@@ -15,7 +15,7 @@ filtered_book_df = book_df.copy()
 filtered_book_df['zone'] = filtered_book_df['location'].str.split('-').str[0]
 
 # 대시보드
-st.set_page_config(page_title="해갈 도서관", layout="wide")
+st.set_page_config(page_title="도서관", layout="wide")
 
 # 사이드바
 with st.sidebar:
@@ -69,7 +69,7 @@ if rentable:
     filtered_book_df = filtered_book_df[filtered_book_df['can_rent'] == True]
 
 # 메인 화면
-st.title("해갈 도서관")
+st.title("도서관")
 
 # 도서 정보 컨테이너
 st.title("도서 정보")
